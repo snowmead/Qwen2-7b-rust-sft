@@ -11,3 +11,6 @@ wheels/
 
 # Tool caches
 .ruff_cache/
+
+# Training metrics data
+.data/

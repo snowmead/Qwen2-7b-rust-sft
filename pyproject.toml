@@ -4,7 +4,16 @@ version = "0.1.0"
 description = "Qwen2-7B Rust fine-tuning utilities"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "datasets>=2.14.0",
+    "huggingface-hub>=0.19.0",
+]
+
+[project.scripts]
+qwen2-train = "qwen2_rust.cli.train:main"
+qwen2-fetch-metrics = "qwen2_rust.cli.fetch_metrics:main"
+qwen2-evaluate = "qwen2_rust.cli.evaluate:main"
+qwen2-validate = "qwen2_rust.cli.validate:main"
 
 [build-system]
 requires = ["hatchling"]
