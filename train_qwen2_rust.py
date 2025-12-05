@@ -10,10 +10,7 @@
 # ]
 # ///
 
-"""
-SFT fine-tuning of Qwen2-7B-Instruct on Fortytwo-Network/Strandset-Rust-v1.
-Quick test run with 1000 examples.
-"""
+"""SFT fine-tuning of Qwen2-7B-Instruct on Fortytwo-Network/Strandset-Rust-v1."""
 
 import argparse
 import random
@@ -37,6 +34,12 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Seed for dataset shuffling (default: random)",
     )
+    parser.add_argument(
+        "-n", "--num-examples",
+        type=int,
+        default=1000,
+        help="Number of examples to train on (default: 1000)",
+    )
     return parser.parse_args()
 
 
@@ -53,10 +56,11 @@ print("Loading dataset...")
 dataset = load_dataset("Fortytwo-Network/Strandset-Rust-v1", split="train")
 print(f"Full dataset: {len(dataset)} examples")
 
-# Take subset for quick test
+# Take subset
 shuffle_seed = args.seed if args.seed is not None else random.randint(0, 2**32 - 1)
 print(f"Shuffle seed: {shuffle_seed}")
-dataset = dataset.shuffle(seed=shuffle_seed).select(range(min(1000, len(dataset))))
+num_examples = min(args.num_examples, len(dataset))
+dataset = dataset.shuffle(seed=shuffle_seed).select(range(num_examples))
 print(f"Using subset: {len(dataset)} examples")
 
 
@@ -87,7 +91,7 @@ config = SFTConfig(
     eval_strategy="steps",
     report_to="trackio",
     project="qwen2-rust-finetune",
-    run_name=f"sft-1k-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}",
+    run_name=f"sft-{num_examples}-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}",
     # Hyperparameters
     num_train_epochs=1,
     per_device_train_batch_size=2,
