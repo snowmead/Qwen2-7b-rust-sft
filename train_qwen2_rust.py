@@ -17,6 +17,7 @@ Quick test run with 1000 examples.
 
 import argparse
 import random
+from datetime import datetime, timezone
 
 
 def parse_args() -> argparse.Namespace:
@@ -80,7 +81,7 @@ config = SFTConfig(
     eval_strategy="steps",
     report_to="trackio",
     project="qwen2-rust-finetune",
-    run_name="quick-test-1k",
+    run_name=f"sft-1k-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}",
     # Hyperparameters
     num_train_epochs=1,
     per_device_train_batch_size=2,
