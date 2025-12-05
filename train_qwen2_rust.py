@@ -31,6 +31,12 @@ def parse_args() -> argparse.Namespace:
         default=False,
         help="Push the trained model to Hugging Face Hub (default: False)",
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Seed for dataset shuffling (default: random)",
+    )
     return parser.parse_args()
 
 
@@ -48,7 +54,7 @@ dataset = load_dataset("Fortytwo-Network/Strandset-Rust-v1", split="train")
 print(f"Full dataset: {len(dataset)} examples")
 
 # Take subset for quick test
-shuffle_seed = random.randint(0, 2**32 - 1)
+shuffle_seed = args.seed if args.seed is not None else random.randint(0, 2**32 - 1)
 print(f"Shuffle seed: {shuffle_seed}")
 dataset = dataset.shuffle(seed=shuffle_seed).select(range(min(1000, len(dataset))))
 print(f"Using subset: {len(dataset)} examples")
