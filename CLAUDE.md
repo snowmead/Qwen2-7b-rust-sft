@@ -23,6 +23,7 @@ uv run qwen2-train                     # Train with defaults (1000 examples)
 uv run qwen2-train -n 2000             # Specify example count
 uv run qwen2-train --push-to-hub       # Push to HuggingFace Hub
 uv run qwen2-train --seed 42           # Reproducible shuffling
+uv run qwen2-train --epochs 2 --lr 1e-5 --batch-size 2  # Override hyperparameters
 
 uv run qwen2-validate                  # Validate dataset format
 uv run qwen2-evaluate                  # Evaluate trained model
@@ -64,6 +65,9 @@ src/qwen2_rust/
 
 - **`format_for_sft()`** (`format_utils.py`): Converts dataset examples to chat message format for SFTTrainer. Handles 14 task types (code_completion, bug_detection, test_generation, etc.).
 
-- **`train.py`**: PEP 723 UV script with inline dependencies for HuggingFace Jobs. Uses LoRA config targeting attention and MLP layers with `r=16, lora_alpha=32`.
+- **`train.py`**: PEP 723 UV script with inline dependencies for HuggingFace Jobs. All hyperparameters configurable via CLI:
+  - Training: `--epochs`, `--batch-size`, `--grad-accum`, `--lr`, `--max-length`, `--warmup-ratio`, `--lr-scheduler`
+  - Checkpoints: `--logging-steps`, `--save-steps`, `--eval-steps`
+  - LoRA: `--lora-r`, `--lora-alpha`, `--lora-dropout` (targets attention + MLP layers)
 
 - **`.data/`**: Git-ignored directory for training metrics JSON files.
