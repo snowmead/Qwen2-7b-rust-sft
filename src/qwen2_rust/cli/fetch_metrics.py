@@ -3,7 +3,6 @@
 
 import argparse
 import json
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +28,7 @@ def discover_trackio_dataset(
     Returns:
         Dataset ID if found, None otherwise
     """
-    api = HfApi()
+    HfApi()
 
     # Strategy 1: Search for datasets with project name
     print(f"Searching for datasets with project '{project}'...")
@@ -105,7 +104,10 @@ def fetch_run_metrics(
             step_metrics["train_loss"] = float(record["train/loss"])
         if "eval/loss" in record and record["eval/loss"] is not None:
             step_metrics["eval_loss"] = float(record["eval/loss"])
-        if "train/learning_rate" in record and record["train/learning_rate"] is not None:
+        if (
+            "train/learning_rate" in record
+            and record["train/learning_rate"] is not None
+        ):
             step_metrics["learning_rate"] = float(record["train/learning_rate"])
         if "train/grad_norm" in record and record["train/grad_norm"] is not None:
             step_metrics["grad_norm"] = float(record["train/grad_norm"])
@@ -149,7 +151,10 @@ def main():
         description="Fetch Trackio metrics for conversational analysis"
     )
     parser.add_argument(
-        "--run", type=str, required=True, help="Run name (e.g., sft-2000-20251205-175811)"
+        "--run",
+        type=str,
+        required=True,
+        help="Run name (e.g., sft-2000-20251205-175811)",
     )
     parser.add_argument(
         "--project",
@@ -169,7 +174,9 @@ def main():
         help="Output file (default: .data/{run_id}.json, or stdout if --stdout)",
     )
     parser.add_argument(
-        "--stdout", action="store_true", help="Print to stdout instead of saving to file"
+        "--stdout",
+        action="store_true",
+        help="Print to stdout instead of saving to file",
     )
 
     args = parser.parse_args()
@@ -181,7 +188,7 @@ def main():
         dataset_id = discover_trackio_dataset(args.username, args.project)
         if not dataset_id:
             print("ERROR: Could not find Trackio dataset")
-            print(f"Please specify dataset ID with --dataset")
+            print("Please specify dataset ID with --dataset")
             return 1
 
     # Fetch metrics

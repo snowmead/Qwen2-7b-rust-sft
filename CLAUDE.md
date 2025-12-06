@@ -38,6 +38,8 @@ uv run qwen2-job-info cancel <job_id>  # Cancel a running job
 
 ### Linting & Formatting (ruff)
 
+Always run these commands before committing code.
+
 ```bash
 uv run ruff check .         # Lint
 uv run ruff check --fix .   # Lint with auto-fix
