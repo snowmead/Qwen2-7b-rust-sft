@@ -12,6 +12,7 @@ dependencies = [
 [project.scripts]
 qwen2-train = "qwen2_rust.cli.train:main"
 qwen2-fetch-metrics = "qwen2_rust.cli.fetch_metrics:main"
+qwen2-job-info = "qwen2_rust.cli.job_info:main"
 qwen2-evaluate = "qwen2_rust.cli.evaluate:main"
 qwen2-validate = "qwen2_rust.cli.validate:main"
 

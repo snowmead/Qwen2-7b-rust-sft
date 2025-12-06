@@ -29,6 +29,11 @@ uv run qwen2-evaluate                  # Evaluate trained model
 
 uv run qwen2-fetch-metrics --run "sft-2000-20251205-175811"  # Fetch training metrics
 uv run qwen2-fetch-metrics --run "..." --stdout              # Print to stdout
+
+uv run qwen2-job-info list             # List recent HF Jobs
+uv run qwen2-job-info info <job_id>    # Get job details
+uv run qwen2-job-info logs <job_id>    # Fetch job logs
+uv run qwen2-job-info cancel <job_id>  # Cancel a running job
 ```
 
 ### Linting & Formatting (ruff)
@@ -48,6 +53,7 @@ src/qwen2_rust/
 └── cli/
     ├── train.py          # SFT training (PEP 723 UV script for HF Jobs)
     ├── fetch_metrics.py  # Fetch Trackio metrics from HF Spaces
+    ├── job_info.py       # Query HF Jobs: status, logs, cancel
     ├── evaluate.py       # Model evaluation
     └── validate.py       # Dataset validation
 ```
