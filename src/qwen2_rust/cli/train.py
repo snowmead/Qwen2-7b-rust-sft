@@ -121,6 +121,12 @@ def main():
         default=0.05,
         help="LoRA dropout (default: 0.05)",
     )
+    parser.add_argument(
+        "--run-name",
+        type=str,
+        default=None,
+        help="Custom run name for Trackio (default: auto-generated)",
+    )
     args = parser.parse_args()
 
     from datasets import load_dataset
@@ -168,7 +174,8 @@ def main():
         eval_strategy="steps",
         report_to="trackio",
         project="qwen2-rust-finetune",
-        run_name=f"sft-{num_examples}-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}",
+        run_name=args.run_name
+        or f"sft-{num_examples}-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}",
         # Hyperparameters
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.batch_size,

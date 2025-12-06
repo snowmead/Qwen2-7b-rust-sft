@@ -69,5 +69,6 @@ src/qwen2_rust/
   - Training: `--epochs`, `--batch-size`, `--grad-accum`, `--lr`, `--max-length`, `--warmup-ratio`, `--lr-scheduler`
   - Checkpoints: `--logging-steps`, `--save-steps`, `--eval-steps`
   - LoRA: `--lora-r`, `--lora-alpha`, `--lora-dropout` (targets attention + MLP layers)
+  - Tracking: `--run-name` (custom Trackio run name, default: auto-generated)
 
 - **`.data/`**: Git-ignored directory for training metrics JSON files.
