@@ -23,7 +23,9 @@ uv run qwen2-train                     # Train with defaults (1000 examples)
 uv run qwen2-train -n 2000             # Specify example count
 uv run qwen2-train --push-to-hub       # Push to HuggingFace Hub
 uv run qwen2-train --seed 42           # Reproducible shuffling
-uv run qwen2-train --epochs 2 --lr 1e-5 --batch-size 2  # Override hyperparameters
+uv run qwen2-train --preset small-batch          # Use best quality preset
+uv run qwen2-train --preset aggressive-lr        # Use fast training preset
+uv run qwen2-train --preset small-batch --lr 3e-5  # Preset with override
 
 uv run qwen2-validate                  # Validate dataset format
 uv run qwen2-evaluate                  # Evaluate trained model
@@ -66,9 +68,18 @@ src/qwen2_rust/
 - **`format_for_sft()`** (`format_utils.py`): Converts dataset examples to chat message format for SFTTrainer. Handles 14 task types (code_completion, bug_detection, test_generation, etc.).
 
 - **`train.py`**: PEP 723 UV script with inline dependencies for HuggingFace Jobs. All hyperparameters configurable via CLI:
+  - Presets: `--preset` (small-batch, aggressive-lr, high-capacity) - optimized configs from experiments
   - Training: `--epochs`, `--batch-size`, `--grad-accum`, `--lr`, `--max-length`, `--warmup-ratio`, `--lr-scheduler`
   - Checkpoints: `--logging-steps`, `--save-steps`, `--eval-steps`
   - LoRA: `--lora-r`, `--lora-alpha`, `--lora-dropout` (targets attention + MLP layers)
   - Tracking: `--run-name` (custom Trackio run name, default: auto-generated)
+
+### Training Presets
+
+| Preset | Eval Loss | Use Case |
+|--------|-----------|----------|
+| `small-batch` | 0.766 | Best quality - more gradient updates, implicit regularization |
+| `aggressive-lr` | 0.767 | Fast training - 4x fewer steps, nearly same quality |
+| `high-capacity` | 0.786 | Large datasets (100k+) - higher LoRA rank (r=32) |
 
 - **`.data/`**: Git-ignored directory for training metrics JSON files.

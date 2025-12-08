@@ -10,17 +10,59 @@
 # ]
 # ///
 
-"""SFT fine-tuning of Qwen2-7B-Instruct on Fortytwo-Network/Strandset-Rust-v1."""
+"""SFT fine-tuning of Qwen3-4B-Instruct on Fortytwo-Network/Strandset-Rust-v1."""
 
 import argparse
 import random
 from datetime import UTC, datetime
 
+# Presets based on hyperparameter experiments (10k examples, A100-large)
+# Results: small-batch achieved best eval loss (0.766), aggressive-lr close second (0.767)
+PRESETS = {
+    "small-batch": {
+        # Best generalization - 4x more gradient updates with implicit regularization
+        "batch_size": 2,
+        "grad_accum": 2,
+        "lr": 2e-5,
+        "warmup_ratio": 0.1,
+        "lora_r": 16,
+        "lora_alpha": 32,
+        "lora_dropout": 0.1,
+    },
+    "aggressive-lr": {
+        # Fast convergence - nearly same quality as small-batch but 4x fewer steps
+        "batch_size": 4,
+        "grad_accum": 4,
+        "lr": 5e-5,
+        "warmup_ratio": 0.2,
+        "lora_r": 16,
+        "lora_alpha": 32,
+        "lora_dropout": 0.05,
+    },
+    "high-capacity": {
+        # For larger datasets (100k+) - more adapter capacity
+        "batch_size": 4,
+        "grad_accum": 4,
+        "lr": 2e-5,
+        "warmup_ratio": 0.1,
+        "lora_r": 32,
+        "lora_alpha": 64,
+        "lora_dropout": 0.1,
+    },
+}
+
 
 def main():
     """Main entry point for training."""
     parser = argparse.ArgumentParser(
-        description="Fine-tune Qwen2-7B on Rust code dataset"
+        description="Fine-tune Qwen3-4B on Rust code dataset"
+    )
+    parser.add_argument(
+        "--preset",
+        type=str,
+        choices=list(PRESETS.keys()),
+        default=None,
+        help=f"Use preset config: {', '.join(PRESETS.keys())} (individual args override)",
     )
     parser.add_argument(
         "--push-to-hub",
@@ -51,8 +93,8 @@ def main():
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=4,
-        help="Per-device training batch size (default: 4)",
+        default=8,
+        help="Per-device training batch size (default: 8)",
     )
     parser.add_argument(
         "--grad-accum",
@@ -129,6 +171,27 @@ def main():
     )
     args = parser.parse_args()
 
+    # Apply preset if specified (CLI args override preset values)
+    if args.preset:
+        preset = PRESETS[args.preset]
+        print(f"Using preset: {args.preset}")
+        # Only apply preset values if user didn't explicitly set them
+        defaults = parser.parse_args([])
+        if args.batch_size == defaults.batch_size:
+            args.batch_size = preset["batch_size"]
+        if args.grad_accum == defaults.grad_accum:
+            args.grad_accum = preset["grad_accum"]
+        if args.lr == defaults.lr:
+            args.lr = preset["lr"]
+        if args.warmup_ratio == defaults.warmup_ratio:
+            args.warmup_ratio = preset["warmup_ratio"]
+        if args.lora_r == defaults.lora_r:
+            args.lora_r = preset["lora_r"]
+        if args.lora_alpha == defaults.lora_alpha:
+            args.lora_alpha = preset["lora_alpha"]
+        if args.lora_dropout == defaults.lora_dropout:
+            args.lora_dropout = preset["lora_dropout"]
+
     from datasets import load_dataset
     from peft import LoraConfig
     from trl import SFTConfig, SFTTrainer
@@ -161,9 +224,9 @@ def main():
 
     # Training configuration
     config = SFTConfig(
-        output_dir="qwen2-7b-rust-sft",
+        output_dir="qwen3-4b-rust-sft",
         push_to_hub=args.push_to_hub,
-        hub_model_id="snowmead/qwen2-7b-rust-sft" if args.push_to_hub else None,
+        hub_model_id="snowmead/qwen3-4b-rust-sft" if args.push_to_hub else None,
         hub_strategy="every_save" if args.push_to_hub else "end",
         hub_private_repo=False,
         logging_steps=args.logging_steps,
@@ -188,7 +251,7 @@ def main():
         lr_scheduler_type=args.lr_scheduler,
     )
 
-    # LoRA configuration for 7B model
+    # LoRA configuration for 4B model
     peft_config = LoraConfig(
         r=args.lora_r,
         lora_alpha=args.lora_alpha,
@@ -208,7 +271,7 @@ def main():
 
     print("Initializing trainer...")
     trainer = SFTTrainer(
-        model="Qwen/Qwen2-7B-Instruct",
+        model="Qwen/Qwen3-4B-Instruct-2507",
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         args=config,
@@ -221,9 +284,9 @@ def main():
     if args.push_to_hub:
         print("Pushing to Hub...")
         trainer.push_to_hub()
-        print("Complete! Model at: https://huggingface.co/snowmead/qwen2-7b-rust-sft")
+        print("Complete! Model at: https://huggingface.co/snowmead/qwen3-4b-rust-sft")
     else:
-        print("Complete! Model saved locally to: qwen2-7b-rust-sft/")
+        print("Complete! Model saved locally to: qwen3-4b-rust-sft/")
 
 
 if __name__ == "__main__":
