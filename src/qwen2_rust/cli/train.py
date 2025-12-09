@@ -16,6 +16,34 @@ import argparse
 import random
 from datetime import UTC, datetime
 
+# Curriculum phases: ordered by pedagogical progression
+# Phase 1: Understanding - learn to read and analyze code
+# Phase 2: Annotation - learn to describe and label code
+# Phase 3: Generation - learn to write and transform code
+CURRICULUM_PHASES = {
+    "understanding": [
+        "code_explanation",
+        "code_summarization",
+        "code_review",
+        "bug_detection",
+    ],
+    "annotation": [
+        "docstring_generation",
+        "comment_generation",
+        "function_naming",
+        "variable_naming",
+    ],
+    "generation": [
+        "code_generation",
+        "code_completion",
+        "code_refactoring",
+        "code_optimization",
+        "test_generation",
+        "code_search",
+        "api_usage_prediction",
+    ],
+}
+
 # Presets based on hyperparameter experiments (10k examples, A100-large)
 # Results: small-batch achieved best eval loss (0.766), aggressive-lr close second (0.767)
 PRESETS = {
@@ -175,6 +203,26 @@ def main():
         default="Qwen/Qwen3-4B-Instruct-2507",
         help="Model to fine-tune (default: Qwen/Qwen3-4B-Instruct-2507)",
     )
+    # Curriculum learning arguments
+    parser.add_argument(
+        "--curriculum-phase",
+        type=str,
+        choices=list(CURRICULUM_PHASES.keys()),
+        default=None,
+        help="Train on specific curriculum phase: understanding, annotation, generation",
+    )
+    parser.add_argument(
+        "--resume-from",
+        type=str,
+        default=None,
+        help="HuggingFace Hub repo ID to resume from (e.g., 'user/model-phase1')",
+    )
+    parser.add_argument(
+        "--output-repo",
+        type=str,
+        default=None,
+        help="HuggingFace Hub repo ID to push checkpoint (e.g., 'user/model-phase2')",
+    )
     args = parser.parse_args()
 
     # Apply preset if specified (CLI args override preset values)
@@ -210,6 +258,14 @@ def main():
     dataset = load_dataset("Fortytwo-Network/Strandset-Rust-v1", split="train")
     print(f"Full dataset: {len(dataset)} examples")
 
+    # Filter by curriculum phase if specified
+    if args.curriculum_phase:
+        phase_tasks = CURRICULUM_PHASES[args.curriculum_phase]
+        print(f"Filtering for curriculum phase: {args.curriculum_phase}")
+        print(f"Task types: {phase_tasks}")
+        dataset = dataset.filter(lambda x: x.get("task_type") in phase_tasks)
+        print(f"Filtered dataset: {len(dataset)} examples")
+
     # Generate run name early so we can use it for both trackio and SFTConfig
     shuffle_seed = args.seed if args.seed is not None else random.randint(0, 2**32 - 1)
     num_examples = min(args.num_examples, len(dataset))
@@ -240,6 +296,9 @@ def main():
         "lora_dropout": args.lora_dropout,
         # Preset (if used)
         "preset": args.preset,
+        # Curriculum
+        "curriculum_phase": args.curriculum_phase,
+        "resume_from": args.resume_from,
     }
 
     # Initialize Trackio with config before TRL takes over
@@ -316,22 +375,39 @@ def main():
         ],
     )
 
-    print(f"Initializing trainer with model: {args.model}")
+    # Determine which model to use
+    if args.resume_from:
+        # Load from a previous checkpoint on HuggingFace Hub
+        print(f"Resuming from checkpoint: {args.resume_from}")
+        # For PEFT models, we load the base model + adapter
+        model_to_train = args.resume_from
+        # When resuming, we don't apply new LoRA config (adapter already exists)
+        peft_config_to_use = None
+    else:
+        model_to_train = args.model
+        peft_config_to_use = peft_config
+
+    print(f"Initializing trainer with model: {model_to_train}")
     trainer = SFTTrainer(
-        model=args.model,
+        model=model_to_train,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         args=config,
-        peft_config=peft_config,
+        peft_config=peft_config_to_use,
     )
 
     print("Starting training...")
     trainer.train()
 
-    if args.push_to_hub:
-        print("Pushing to Hub...")
-        trainer.push_to_hub()
-        print("Complete! Model at: https://huggingface.co/snowmead/qwen3-4b-rust-sft")
+    # Determine where to save/push
+    output_repo = args.output_repo or (
+        "snowmead/qwen3-4b-rust-sft" if args.push_to_hub else None
+    )
+
+    if args.push_to_hub or args.output_repo:
+        print(f"Pushing to Hub: {output_repo}")
+        trainer.push_to_hub(repo_id=output_repo)
+        print(f"Complete! Model at: https://huggingface.co/{output_repo}")
     else:
         print("Complete! Model saved locally to: qwen3-4b-rust-sft/")
 
