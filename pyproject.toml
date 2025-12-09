@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "datasets>=2.14.0",
     "huggingface-hub>=0.19.0",
+    "trackio>=0.10.0",
 ]
 
 [project.scripts]

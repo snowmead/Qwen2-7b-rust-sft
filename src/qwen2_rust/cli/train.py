@@ -198,21 +198,63 @@ def main():
         if args.lora_dropout == defaults.lora_dropout:
             args.lora_dropout = preset["lora_dropout"]
 
+    import trackio
     from datasets import load_dataset
     from peft import LoraConfig
     from trl import SFTConfig, SFTTrainer
 
     from qwen2_rust import format_for_sft
 
-    # Load dataset
+    # Load dataset first (needed for num_examples calculation)
     print("Loading dataset...")
     dataset = load_dataset("Fortytwo-Network/Strandset-Rust-v1", split="train")
     print(f"Full dataset: {len(dataset)} examples")
 
-    # Take subset
+    # Generate run name early so we can use it for both trackio and SFTConfig
     shuffle_seed = args.seed if args.seed is not None else random.randint(0, 2**32 - 1)
-    print(f"Shuffle seed: {shuffle_seed}")
     num_examples = min(args.num_examples, len(dataset))
+    run_name = (
+        args.run_name
+        or f"sft-{num_examples}-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}"
+    )
+
+    # Build hyperparameters config for logging
+    hyperparams = {
+        # Model
+        "model": args.model,
+        "dataset": "Fortytwo-Network/Strandset-Rust-v1",
+        "num_examples": num_examples,
+        "seed": shuffle_seed,
+        # Training
+        "epochs": args.epochs,
+        "batch_size": args.batch_size,
+        "grad_accum": args.grad_accum,
+        "effective_batch_size": args.batch_size * args.grad_accum,
+        "learning_rate": args.lr,
+        "max_length": args.max_length,
+        "warmup_ratio": args.warmup_ratio,
+        "lr_scheduler": args.lr_scheduler,
+        # LoRA
+        "lora_r": args.lora_r,
+        "lora_alpha": args.lora_alpha,
+        "lora_dropout": args.lora_dropout,
+        # Preset (if used)
+        "preset": args.preset,
+    }
+
+    # Initialize Trackio with config before TRL takes over
+    print(f"Initializing Trackio run: {run_name}")
+    print(f"Hyperparameters: {hyperparams}")
+    trackio.init(
+        project="qwen2-rust-finetune",
+        name=run_name,
+        space_id="snowmead/trackio",
+        dataset_id="snowmead/trackio-dataset",
+        config=hyperparams,
+    )
+
+    # Take subset (using pre-computed values)
+    print(f"Shuffle seed: {shuffle_seed}")
     dataset = dataset.shuffle(seed=shuffle_seed).select(range(num_examples))
     print(f"Using subset: {len(dataset)} examples")
 
@@ -243,8 +285,7 @@ def main():
         eval_strategy="steps",
         report_to="trackio",
         project="qwen2-rust-finetune",
-        run_name=args.run_name
-        or f"sft-{num_examples}-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}",
+        run_name=run_name,
         # Hyperparameters
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.batch_size,
