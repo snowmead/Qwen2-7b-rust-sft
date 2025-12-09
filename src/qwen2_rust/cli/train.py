@@ -169,6 +169,12 @@ def main():
         default=None,
         help="Custom run name for Trackio (default: auto-generated)",
     )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="Qwen/Qwen3-4B-Instruct-2507",
+        help="Model to fine-tune (default: Qwen/Qwen3-4B-Instruct-2507)",
+    )
     args = parser.parse_args()
 
     # Apply preset if specified (CLI args override preset values)
@@ -269,9 +275,9 @@ def main():
         ],
     )
 
-    print("Initializing trainer...")
+    print(f"Initializing trainer with model: {args.model}")
     trainer = SFTTrainer(
-        model="Qwen/Qwen3-4B-Instruct-2507",
+        model=args.model,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         args=config,
