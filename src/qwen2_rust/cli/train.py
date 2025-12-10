@@ -79,8 +79,9 @@ PRESETS = {
     },
 }
 
-# Simplified Qwen3 chat template with {% generation %} markers for assistant_only_loss
-# The original Qwen3 template lacks these markers, causing assistant_only_loss=True to fail
+# Qwen3 chat template with {% generation %} markers for assistant_only_loss
+# Supports reasoning_content field (native Qwen3 thinking format) and system prompts
+# The original Qwen3 template lacks generation markers, causing assistant_only_loss=True to fail
 QWEN3_CHAT_TEMPLATE_WITH_GENERATION = """{%- for message in messages %}
 {%- if message['role'] == 'system' %}
 <|im_start|>system
@@ -90,7 +91,11 @@ QWEN3_CHAT_TEMPLATE_WITH_GENERATION = """{%- for message in messages %}
 {{ message['content'] }}<|im_end|>
 {%- elif message['role'] == 'assistant' %}
 <|im_start|>assistant
-{% generation %}{{ message['content'] }}{% endgeneration %}<|im_end|>
+{% generation %}{%- if message['reasoning_content'] is defined and message['reasoning_content'] %}<think>
+{{ message['reasoning_content'] }}
+</think>
+
+{{ message['content'] }}{%- else %}{{ message['content'] }}{%- endif %}{% endgeneration %}<|im_end|>
 {%- endif %}
 {%- endfor %}
 {%- if add_generation_prompt %}

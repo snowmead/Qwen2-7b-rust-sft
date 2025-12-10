@@ -198,25 +198,45 @@ def format_for_sft(example):
     }
 
 
+# System prompt for Rust expertise - used in format_for_sft_think
+RUST_SYSTEM_PROMPT = """You are an expert Rust developer with deep knowledge of the Rust ecosystem, including popular crates, idioms, and best practices. You write clean, efficient, and idiomatic Rust code that leverages the type system and ownership model effectively."""
+
+
 def format_for_sft_think(example):
-    """Convert Strandset-Rust-Think dataset to chat messages with <think> tags.
+    """Convert Strandset-Rust-Think dataset to chat messages with reasoning_content.
 
     Expected columns: user_prompt, ground_truth, reasoning
-    The reasoning is wrapped in <think> tags and prepended to the ground truth.
+
+    Uses Qwen3's native 'reasoning_content' field instead of embedding <think> tags
+    in the content. This aligns with how Qwen3 was trained and allows the chat
+    template to properly format the thinking blocks.
+
+    Also includes a system prompt to establish Rust expertise context.
     """
     user_content = example["user_prompt"]
     reasoning = example.get("reasoning", "")
     ground_truth = example["ground_truth"]
 
-    # Prepend reasoning in <think> tags
-    if reasoning:
-        assistant_content = f"<think>\n{reasoning}\n</think>\n\n{ground_truth}"
-    else:
-        assistant_content = ground_truth
+    messages = [
+        {"role": "system", "content": RUST_SYSTEM_PROMPT},
+        {"role": "user", "content": user_content},
+    ]
 
-    return {
-        "messages": [
-            {"role": "user", "content": user_content},
-            {"role": "assistant", "content": assistant_content},
-        ]
-    }
+    # Use reasoning_content field for thinking (native Qwen3 format)
+    if reasoning:
+        messages.append(
+            {
+                "role": "assistant",
+                "reasoning_content": reasoning,
+                "content": ground_truth,
+            }
+        )
+    else:
+        messages.append(
+            {
+                "role": "assistant",
+                "content": ground_truth,
+            }
+        )
+
+    return {"messages": messages}
