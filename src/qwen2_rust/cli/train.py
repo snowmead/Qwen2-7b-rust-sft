@@ -79,6 +79,25 @@ PRESETS = {
     },
 }
 
+# Simplified Qwen3 chat template with {% generation %} markers for assistant_only_loss
+# The original Qwen3 template lacks these markers, causing assistant_only_loss=True to fail
+QWEN3_CHAT_TEMPLATE_WITH_GENERATION = """{%- for message in messages %}
+{%- if message['role'] == 'system' %}
+<|im_start|>system
+{{ message['content'] }}<|im_end|>
+{%- elif message['role'] == 'user' %}
+<|im_start|>user
+{{ message['content'] }}<|im_end|>
+{%- elif message['role'] == 'assistant' %}
+<|im_start|>assistant
+{% generation %}{{ message['content'] }}{% endgeneration %}<|im_end|>
+{%- endif %}
+{%- endfor %}
+{%- if add_generation_prompt %}
+<|im_start|>assistant
+{% generation %}
+{%- endif %}"""
+
 
 def main():
     """Main entry point for training."""
@@ -261,6 +280,7 @@ def main():
     import trackio
     from datasets import load_dataset
     from peft import LoraConfig
+    from transformers import AutoTokenizer
     from trl import SFTConfig, SFTTrainer
 
     from qwen2_rust import format_for_sft, format_for_sft_think
@@ -408,9 +428,17 @@ def main():
         model_to_train = args.model
         peft_config_to_use = peft_config
 
+    # Load tokenizer and apply custom chat template with generation markers
+    # This is required for assistant_only_loss=True to work with Qwen3 models
+    print(f"Loading tokenizer for: {args.model}")
+    tokenizer = AutoTokenizer.from_pretrained(args.model)
+    tokenizer.chat_template = QWEN3_CHAT_TEMPLATE_WITH_GENERATION
+    print("Applied custom chat template with {% generation %} markers")
+
     print(f"Initializing trainer with model: {model_to_train}")
     trainer = SFTTrainer(
         model=model_to_train,
+        tokenizer=tokenizer,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         args=config,
