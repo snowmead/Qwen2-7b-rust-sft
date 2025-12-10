@@ -5,9 +5,12 @@ description = "Qwen2-7B Rust fine-tuning utilities"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "anthropic>=0.40.0",
     "datasets>=2.14.0",
     "huggingface-hub>=0.19.0",
+    "python-dotenv>=1.0.0",
     "trackio>=0.10.0",
+    "transformers>=4.57.3",
 ]
 
 [project.scripts]
@@ -16,6 +19,7 @@ qwen2-fetch-metrics = "qwen2_rust.cli.fetch_metrics:main"
 qwen2-job-info = "qwen2_rust.cli.job_info:main"
 qwen2-evaluate = "qwen2_rust.cli.evaluate:main"
 qwen2-validate = "qwen2_rust.cli.validate:main"
+qwen2-generate-think = "qwen2_rust.cli.generate_think_dataset:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -25,9 +29,7 @@ build-backend = "hatchling.build"
 packages = ["src/qwen2_rust"]
 
 [dependency-groups]
-dev = [
-    "ruff>=0.14.8",
-]
+dev = ["ruff>=0.14.8"]
 
 [tool.ruff]
 line-length = 88
@@ -35,18 +37,18 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = [
-    "E",      # pycodestyle errors
-    "W",      # pycodestyle warnings
-    "F",      # pyflakes
-    "I",      # isort
-    "B",      # flake8-bugbear
-    "C4",     # flake8-comprehensions
-    "UP",     # pyupgrade
-    "ARG",    # flake8-unused-arguments
-    "SIM",    # flake8-simplify
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG", # flake8-unused-arguments
+    "SIM", # flake8-simplify
 ]
 ignore = [
-    "E501",   # line too long (handled by formatter)
+    "E501", # line too long (handled by formatter)
 ]
 
 [tool.ruff.lint.isort]

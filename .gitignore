@@ -14,3 +14,7 @@ wheels/
 
 # Training metrics data
 .data/
+
+# Environment variables (API keys)
+.env
+.env.local
