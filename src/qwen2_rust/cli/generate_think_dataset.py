@@ -381,9 +381,7 @@ def batch_prepare(args):
             # Save original example
             f.write(json.dumps(dict(example)) + "\n")
             # Create batch request
-            batch_requests.append(
-                format_example_for_batch(example, idx, args.model)
-            )
+            batch_requests.append(format_example_for_batch(example, idx, args.model))
 
     # Save batch requests
     batch_file = output_dir / f"batch_{num_examples}_{seed}.jsonl"
@@ -582,7 +580,9 @@ def batch_process(args):
     print("\n📊 Results:")
     print(f"  Total examples: {len(dataset_rows)}")
     if dataset_rows:
-        avg_reasoning = sum(len(r["reasoning"]) for r in dataset_rows) / len(dataset_rows)
+        avg_reasoning = sum(len(r["reasoning"]) for r in dataset_rows) / len(
+            dataset_rows
+        )
         print(f"  Avg reasoning length: {avg_reasoning:.0f} chars")
 
     # Cost (with 50% batch discount)

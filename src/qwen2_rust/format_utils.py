@@ -196,3 +196,27 @@ def format_for_sft(example):
             {"role": "assistant", "content": assistant_content},
         ]
     }
+
+
+def format_for_sft_think(example):
+    """Convert Strandset-Rust-Think dataset to chat messages with <think> tags.
+
+    Expected columns: user_prompt, ground_truth, reasoning
+    The reasoning is wrapped in <think> tags and prepended to the ground truth.
+    """
+    user_content = example["user_prompt"]
+    reasoning = example.get("reasoning", "")
+    ground_truth = example["ground_truth"]
+
+    # Prepend reasoning in <think> tags
+    if reasoning:
+        assistant_content = f"<think>\n{reasoning}\n</think>\n\n{ground_truth}"
+    else:
+        assistant_content = ground_truth
+
+    return {
+        "messages": [
+            {"role": "user", "content": user_content},
+            {"role": "assistant", "content": assistant_content},
+        ]
+    }

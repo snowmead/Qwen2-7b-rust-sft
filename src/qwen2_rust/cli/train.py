@@ -203,6 +203,18 @@ def main():
         default="Qwen/Qwen3-4B-Instruct-2507",
         help="Model to fine-tune (default: Qwen/Qwen3-4B-Instruct-2507)",
     )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default="Fortytwo-Network/Strandset-Rust-v1",
+        help="Dataset to train on (default: Fortytwo-Network/Strandset-Rust-v1)",
+    )
+    parser.add_argument(
+        "--think",
+        action="store_true",
+        default=False,
+        help="Enable thinking mode: wrap reasoning in <think> tags (for Strandset-Rust-Think dataset)",
+    )
     # Curriculum learning arguments
     parser.add_argument(
         "--curriculum-phase",
@@ -251,11 +263,11 @@ def main():
     from peft import LoraConfig
     from trl import SFTConfig, SFTTrainer
 
-    from qwen2_rust import format_for_sft
+    from qwen2_rust import format_for_sft, format_for_sft_think
 
     # Load dataset first (needed for num_examples calculation)
-    print("Loading dataset...")
-    dataset = load_dataset("Fortytwo-Network/Strandset-Rust-v1", split="train")
+    print(f"Loading dataset: {args.dataset}...")
+    dataset = load_dataset(args.dataset, split="train")
     print(f"Full dataset: {len(dataset)} examples")
 
     # Filter by curriculum phase if specified
@@ -278,7 +290,8 @@ def main():
     hyperparams = {
         # Model
         "model": args.model,
-        "dataset": "Fortytwo-Network/Strandset-Rust-v1",
+        "dataset": args.dataset,
+        "think_mode": args.think,
         "num_examples": num_examples,
         "seed": shuffle_seed,
         # Training
@@ -317,8 +330,14 @@ def main():
     dataset = dataset.shuffle(seed=shuffle_seed).select(range(num_examples))
     print(f"Using subset: {len(dataset)} examples")
 
-    print("Formatting dataset...")
-    dataset = dataset.map(format_for_sft, remove_columns=dataset.column_names)
+    # Format dataset based on mode
+    if args.think:
+        print("Formatting dataset with <think> tags (think mode)...")
+        format_fn = format_for_sft_think
+    else:
+        print("Formatting dataset (standard mode)...")
+        format_fn = format_for_sft
+    dataset = dataset.map(format_fn, remove_columns=dataset.column_names)
     print("Dataset formatted")
 
     # Create train/eval split
