@@ -95,7 +95,7 @@ QWEN3_CHAT_TEMPLATE_WITH_GENERATION = """{%- for message in messages %}
 {%- endfor %}
 {%- if add_generation_prompt %}
 <|im_start|>assistant
-{% generation %}
+{% generation %}{% endgeneration %}
 {%- endif %}"""
 
 
