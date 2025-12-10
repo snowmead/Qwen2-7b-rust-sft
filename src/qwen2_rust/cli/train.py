@@ -374,6 +374,8 @@ def main():
         bf16=True,
         warmup_ratio=args.warmup_ratio,
         lr_scheduler_type=args.lr_scheduler,
+        # Only compute loss on assistant tokens, not user prompt
+        assistant_only_loss=True,
     )
 
     # LoRA configuration for 4B model
