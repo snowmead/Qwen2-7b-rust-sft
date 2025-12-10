@@ -438,7 +438,7 @@ def main():
     print(f"Initializing trainer with model: {model_to_train}")
     trainer = SFTTrainer(
         model=model_to_train,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,  # renamed from 'tokenizer' in TRL 0.12+
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         args=config,
