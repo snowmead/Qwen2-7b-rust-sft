@@ -7,7 +7,9 @@
 #     "accelerate>=0.34.0",
 #     "huggingface-hub>=0.25.0",
 #     "safetensors>=0.4.0",
-#     "llama-cpp-python>=0.3.0",
+#     "gguf>=0.10.0",
+#     "numpy>=1.24.0",
+#     "sentencepiece>=0.2.0",
 # ]
 # ///
 """
@@ -38,14 +40,14 @@ Usage (HF Jobs):
 """
 
 import argparse
-import os
 import subprocess
 import sys
-import torch
 from pathlib import Path
-from transformers import AutoModelForCausalLM, AutoTokenizer
+
+import torch
+from huggingface_hub import HfApi
 from peft import PeftModel
-from huggingface_hub import HfApi, upload_file
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 def main():
@@ -79,7 +81,7 @@ def main():
         "--quant",
         type=str,
         default="Q8_0",
-        choices=["F16", "F32", "Q8_0", "Q6_K", "Q5_K_M", "Q4_K_M", "Q3_K_M", "Q2_K"],
+        choices=["f32", "f16", "bf16", "q8_0", "Q8_0", "F16", "F32", "BF16"],
         help="GGUF quantization type (default: Q8_0 for best quality)",
     )
     parser.add_argument(
@@ -138,21 +140,22 @@ def main():
     if not llama_cpp_dir.exists():
         print("Cloning llama.cpp...")
         subprocess.run(
-            ["git", "clone", "--depth", "1", "https://github.com/ggerganov/llama.cpp.git", str(llama_cpp_dir)],
+            [
+                "git",
+                "clone",
+                "--depth",
+                "1",
+                "https://github.com/ggerganov/llama.cpp.git",
+                str(llama_cpp_dir),
+            ],
             check=True,
         )
 
-    # Install conversion dependencies
-    print("Installing conversion dependencies...")
-    subprocess.run(
-        [sys.executable, "-m", "pip", "install", "-r", str(llama_cpp_dir / "requirements.txt")],
-        check=True,
-    )
-
-    # Convert to GGUF
+    # Convert to GGUF - the gguf package is already installed via PEP 723 deps
     convert_script = llama_cpp_dir / "convert_hf_to_gguf.py"
     model_name = args.adapter.split("/")[-1]
-    gguf_filename = f"{model_name}-{args.quant}.gguf"
+    quant_lower = args.quant.lower()
+    gguf_filename = f"{model_name}-{quant_lower}.gguf"
     gguf_path = output_dir / gguf_filename
 
     print(f"Converting to GGUF ({args.quant})...")
@@ -161,14 +164,17 @@ def main():
             sys.executable,
             str(convert_script),
             str(merged_dir),
-            "--outfile", str(gguf_path),
-            "--outtype", args.quant.lower(),
+            "--outfile",
+            str(gguf_path),
+            "--outtype",
+            quant_lower,
         ],
         check=True,
     )
 
     print(f"GGUF file created: {gguf_path}")
-    print(f"Size: {gguf_path.stat().st_size / 1024 / 1024:.1f} MB")
+    file_size_mb = gguf_path.stat().st_size / 1024 / 1024
+    print(f"Size: {file_size_mb:.1f} MB")
 
     # Step 3: Push to Hub
     if args.push_to_hub:
@@ -214,6 +220,7 @@ This is a GGUF quantized version of [{args.adapter}](https://huggingface.co/{arg
 - **LoRA Adapter**: [{args.adapter}](https://huggingface.co/{args.adapter})
 - **Quantization**: {args.quant}
 - **File**: `{gguf_filename}`
+- **Size**: {file_size_mb:.1f} MB
 
 ## Usage
 
@@ -240,7 +247,9 @@ for Rust code generation with reasoning capabilities.
             repo_id=args.output_repo,
         )
 
-        print(f"Complete! GGUF model available at: https://huggingface.co/{args.output_repo}")
+        print(
+            f"Complete! GGUF model available at: https://huggingface.co/{args.output_repo}"
+        )
     else:
         print(f"Complete! GGUF file saved to: {gguf_path}")
 
