@@ -456,10 +456,17 @@ def main():
     print("Starting training...")
     trainer.train()
 
+    # Save model locally
+    trainer.save_model()
+    tokenizer.save_pretrained(config.output_dir)
+
     if args.push_to_hub:
+        print(f"Pushing model to Hub: {output_repo}")
+        # trainer.push_to_hub() uses hub_model_id from SFTConfig
+        trainer.push_to_hub()
         print(f"Complete! Model pushed to: https://huggingface.co/{output_repo}")
     else:
-        print("Complete! Model saved locally to: qwen3-0.6b-rust-sft/")
+        print(f"Complete! Model saved locally to: {config.output_dir}/")
 
 
 if __name__ == "__main__":
