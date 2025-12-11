@@ -373,12 +373,15 @@ def main():
     print(f"   Train: {len(train_dataset)} examples")
     print(f"   Eval: {len(eval_dataset)} examples")
 
+    # Determine output repo for push_to_hub
+    output_repo = args.output_repo or "snowmead/qwen3-0.6b-rust-sft"
+
     # Training configuration
     config = SFTConfig(
-        output_dir="qwen3-4b-rust-sft",
+        output_dir="qwen3-0.6b-rust-sft",
         push_to_hub=args.push_to_hub,
-        hub_model_id="snowmead/qwen3-4b-rust-sft" if args.push_to_hub else None,
-        hub_strategy="every_save" if args.push_to_hub else "end",
+        hub_model_id=output_repo if args.push_to_hub else None,
+        hub_strategy="end",
         hub_private_repo=False,
         logging_steps=args.logging_steps,
         save_strategy="steps",
@@ -453,17 +456,10 @@ def main():
     print("Starting training...")
     trainer.train()
 
-    # Determine where to save/push
-    output_repo = args.output_repo or (
-        "snowmead/qwen3-4b-rust-sft" if args.push_to_hub else None
-    )
-
-    if args.push_to_hub or args.output_repo:
-        print(f"Pushing to Hub: {output_repo}")
-        trainer.push_to_hub(repo_id=output_repo)
-        print(f"Complete! Model at: https://huggingface.co/{output_repo}")
+    if args.push_to_hub:
+        print(f"Complete! Model pushed to: https://huggingface.co/{output_repo}")
     else:
-        print("Complete! Model saved locally to: qwen3-4b-rust-sft/")
+        print("Complete! Model saved locally to: qwen3-0.6b-rust-sft/")
 
 
 if __name__ == "__main__":
